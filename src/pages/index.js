@@ -1,115 +1,173 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Space_Mono } from 'next/font/google';
+import { create } from 'zustand';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const useStore = create((set) => ({
+  bill: 0,
+  tip: 0,
+  totalPerPerson: 0,
+  tipCalculated: false,
+  tipPerPerson: 0,
+  numberOfPersons: 0,
+  errorText: "",
+
+  // Update functions
+  setBill: (bill) => set({ bill }),
+  setTip: (tip) => set({ tip }),
+  setNumberOfPersons: (numberOfPersons) => set({ numberOfPersons }),
+
+  // Calculate tip logic
+  calculateTip: () => set((state) => {
+    const bill = parseFloat(state.bill);
+    const tip = parseFloat(state.tip);
+    const tipPercent = parseFloat(state.tip);
+    const persons = parseInt(state.numberOfPersons);
+
+    if (isNaN(bill) || isNaN(persons) || isNaN(tip) || persons === 0) return {
+      tipPerPerson: 0,
+      totalPerPerson: 0,
+      errorText: "Can't be zero"
+    };
+
+    const totalTip = (tipPercent / 100) * bill;
+    return {
+      tipPerPerson: (totalTip / persons).toFixed(2),
+      totalPerPerson: ((bill + totalTip) / persons).toFixed(2),
+      tipCalculated: true,
+      errorText: ""
+    }
+  }),
+
+  reset: () => set({
+    bill: 0,
+    tip: 0,
+    isCustom: false,
+    totalPerPerson: 0,
+    tipPerPerson: 0,
+    numberOfPersons: 1,
+    tipCalculated: false
+  }),
+}));
+
+const spaceMono = Space_Mono({
+  subsets: ['latin'],
+  weight: ['400', '700'], //
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const tipPercentages = [5, 10, 15, 25, 50]
 
 export default function Home() {
+  const {
+    bill,
+    tipCalculated,
+    numberOfPersons,
+    setBill,
+    setTip,
+    setNumberOfPersons,
+    tipPerPerson,
+    totalPerPerson,
+    calculateTip,
+    reset,
+    errorText
+  } = useStore();
+
+  console.log(errorText);
+
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]`}
-    >
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/pages/index.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className={`${spaceMono.className} w-full lg:h-screen bg-cyan-100 flex flex-col items-center justify-center text-cyan-800 text-base font-bold`} >
+      <div className='text-center mb-20 mt-16 lg:mt-0'>
+        <img alt='logo' src='/images/logo.svg' />
+      </div>
+      <section className='w-full lg:w-3/5 bg-white h-min p-8 rounded-2xl gap-4 block lg:flex shadow-xl'>
+        <form className='w-full lg:w-1/2'>
+          <div className='mb-4'>
+            <label>Bill</label>
+            <div className='flex items-center justify-between relative bg-gray-100 rounded-md'>
+              <img alt='dollar-sign' className='w-min absolute left-4' src='/images/icon-dollar.svg' />
+              <input
+                type='text'
+                placeholder='0'
+                className='input focus:border-2 focus:border-cyan-600 outline-none py-2 px-3 w-full rounded-md h-full text-right'
+                value={bill}
+                onChange={(e) => {
+                  setBill(e.target.value);
+                  calculateTip();
+                }}
+              />
+            </div>
+          </div>
+          <div className='mb-4'>
+            <label className=''>Select amount %</label>
+            <div className='mt-3 grid grid-cols-2 lg:grid-cols-3 grid-rows-3 lg:grid-rows-2 gap-4'>
+              <>{
+                tipPercentages.map((perc, indx) => {
+                  return <button
+                    key={indx}
+                    type='button'
+                    className='cursor-pointer text-white rounded-sm shadow-sm bg-cyan-900 px-3 py-2 hover:bg-cyan-200 hover:text-cyan-900'
+                    onClick={() => {
+                      setTip(perc);
+                      calculateTip();
+                    }}
+                  >
+                    {perc}%
+                  </button>
+                })
+              }</>
+              <input
+                type='text'
+                placeholder='Custom'
+                className='p-2 bg-cyan-50 rounded-md text-cyan-800 outline-none focus:border-2 focus:border-cyan-600'
+                onChange={(e) => {
+                  setTip(e.target.value);
+                  calculateTip();
+                }}
+              />
+            </div>
+          </div>
+          <div className='mb-4'>
+            <div className='flex items-center justify-between'>
+              <label>Number of people</label>
+              <p className='text-red-500'>{errorText}</p>
+            </div>
+            <div className='flex items-center justify-between relative bg-gray-100 rounded-md'>
+              <img alt='avatar' className='w-min absolute left-4' src='/images/icon-person.svg' />
+              <input
+                type='text'
+                placeholder='0'
+                className='input focus:border-2 focus:border-cyan-600 py-2 px-3 w-full outline-none rounded-md h-full text-right'
+                value={numberOfPersons}
+                onChange={(e) => {
+                  setNumberOfPersons(e.target.value);
+                  calculateTip();
+                }}
+              />
+            </div>
+          </div>
+        </form>
+        <div className='bg-cyan-900 lg:w-1/2 rounded-xl p-4'>
+          <div className='flex items-center justify-between mb-4'>
+            <div>
+              <p className='text-white text-base'>Tip</p>
+              <p className='text-gray-200 text-xs'>/ person</p>
+            </div>
+            <h2 className='text-4xl text-cyan-200'>${tipPerPerson}</h2>
+          </div>
+          <div className='flex items-center justify-between'>
+            <div>
+              <p className='text-white text-base'>Total</p>
+              <p className='text-gray-200 text-xs'>/ person</p>
+            </div>
+            <h2 className='text-4xl text-cyan-200'>${totalPerPerson}</h2>
+          </div>
+          <button
+            onClick={reset}
+            className={`uppercase w-full p-2 rounded-md mt-36 cursor-pointer ${tipCalculated ? 'text-cyan-900 bg-cyan-300' : 'bg-cyan-300 opacity-10 text-cyan-900 shadow-md'}`}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            reset
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </section>
+    </main>
   );
 }
